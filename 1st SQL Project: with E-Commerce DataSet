@@ -2,6 +2,7 @@
 ## This e-commerce dataset was obtained from Kaggle ##
 
 # E-commerce Sales Analysis:
+# -------------------------------------------------------------------------------------------------------- 
 
 SELECT * 
 FROM list_of_orders;
