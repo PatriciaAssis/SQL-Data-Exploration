@@ -1,0 +1,123 @@
+# Building SQL Projetc with E-Commerce DataSet from Kaggle
+## This e-commerce dataset was obtained from Kaggle ##
+
+# E-commerce Sales Analysis:
+
+SELECT * 
+FROM list_of_orders;
+
+SELECT * 
+FROM order_details;
+
+SELECT * 
+FROM sales_target;
+
+# Rename the columns which contain space or dash in their names.
+
+ALTER TABLE list_of_orders CHANGE `Order ID` OrderID VARCHAR(25);
+ALTER TABLE list_of_orders CHANGE `Order Date` OrderDate VARCHAR(25);
+
+ALTER TABLE order_details CHANGE `Order ID` OrderID VARCHAR(25);
+ALTER TABLE order_details CHANGE `Sub-Category` Sub_Category VARCHAR(25);
+
+ALTER TABLE sales_target CHANGE `Order_Date_Month`Month_of_Order VARCHAR(25);
+
+# Join the 2 tables with the same column (OrderID), and create a new table.
+
+SELECT *
+FROM list_of_orders l
+JOIN order_details d
+ON l.OrderID = d.OrderID ;
+
+CREATE VIEW combined_orders AS
+SELECT l.OrderID, l.OrderDate, l.CustomerName, l.State, l.City, d.Amount, d.Profit, d.Quantity, d.Category, d.Sub_Category
+FROM list_of_orders l
+JOIN order_details d
+ON l.OrderID = d.OrderID ;
+
+SELECT * 
+FROM combined_orders;
+
+SELECT * 
+FROM combined_orders
+ORDER BY OrderID ;
+
+# Query 1: Find how many Order's, Customer's, Citie's and States are.
+
+SELECT COUNT(DISTINCT OrderID) AS num_of_orders,
+       COUNT(DISTINCT CustomerName) AS num_of_customers,
+       COUNT(DISTINCT City) AS num_of_cities,
+       COUNT(DISTINCT State) as num_of_states
+FROM combined_orders ;
+
+# There are 500 orders and 332 customers 
+# from 24 different cities and 19 states from April 2018 to March 2019.
+
+# Query 2: How many products were in each OrderID?
+SELECT OrderID, 
+       SUM(Quantity) AS Total_Products
+FROM combined_orders
+GROUP BY OrderID ;
+
+# Query 3: Find the new customers who made purchases in the year 2019. 
+# Only shows the top 5 new customers and their respective cities and states. 
+# Order the result by the amount they spent.
+
+SELECT OrderDate,  
+    str_to_date(OrderDate, '%d/%m/%Y')
+  FROM combined_orders ;
+ 
+ UPDATE combined_orders 
+ SET OrderDate =  str_to_date(OrderDate, '%d/%m/%Y');
+
+SELECT CustomerName,
+       State,
+       City,
+       SUM(Amount) AS Sales
+FROM combined_orders
+WHERE CustomerName NOT IN
+	(SELECT DISTINCT CustomerName
+	FROM combined_orders
+	WHERE YEAR(OrderDate) = '2018')
+GROUP BY CustomerName, State, City
+ORDER BY Sales DESC
+LIMIT 5;
+
+# Two new customers come from Delhi and one customers come from Uttar Pradesh, Madhya Pradesh and Gurajat.
+
+# Query 4: Find the top 10 profitable states & cities so that the company can expand its business. 
+# Determine the number of products sold and the number of customers in these top 10 profitable states & cities.
+
+SELECT * 
+FROM combined_orders;
+
+SELECT State,
+       City,
+       COUNT(DISTINCT CustomerName) AS num_of_customers,
+       SUM(Profit) AS total_profit,
+       SUM(Quantity) AS total_quantity
+FROM combined_orders
+GROUP BY State, City
+ORDER BY total_profit DESC
+LIMIT 10 ;
+
+# The most profitable cities are Pune, followed by Indore, Allahabad, and Delhi.
+
+
+# Query 5: Display the details (in terms of “order_date”, “order_id”, “State”, and “CustomerName”) for the first order in each state. 
+# Order the result by “order_id”.
+
+SELECT OrderDate, 
+	   OrderID, 
+       State,
+       CustomerName
+FROM (SELECT *,
+		ROW_NUMBER() OVER(PARTITION BY State ORDER BY State, OrderID) AS RowNumberPerState
+		FROM combined_orders) AS FirstOrder
+WHERE RowNumberPerState = 1
+ORDER BY OrderID ;
+
+# Delhi is the last state where this Indian e-commerce website established its footprint. 
+# However, the profit generated from Delhi state is much higher than that from Gujarat state. 
+
+# -------------------------------------------------------------------------------------------------------- 
